@@ -1,0 +1,81 @@
+package app
+
+import (
+	"encoding/json"
+	"log/slog"
+	"net/http"
+	"os/exec"
+	"strings"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
+
+func (a *App) metrics(res http.ResponseWriter, req *http.Request) {
+	metricRequest := newAppRequest()
+	metricRequest.collectMetrics(a.BorgmaticConfigs)
+	h := promhttp.HandlerFor(metricRequest.registry, promhttp.HandlerOpts{})
+	h.ServeHTTP(res, req)
+}
+
+func (req *MetricRequest) collectMetrics(borgmaticConfigs []string) {
+	borgmaticConfigsStr := strings.Join(borgmaticConfigs, "-c ")
+	slog.Info("get metrics", slog.String("borgmaticConfigsStr", borgmaticConfigsStr))
+	archiveList := runBorgmaticCmd[ListArchives]("borgmatic list " + borgmaticConfigsStr + " --json")
+	repoInfos := runBorgmaticCmd[RepoInfos]("borgmatic info " + borgmaticConfigsStr + " --json")
+
+	if archiveList == nil || repoInfos == nil {
+		slog.Error("Failed to get archive list or repo info")
+		return
+	}
+
+	if len(archiveList) != len(repoInfos) {
+		slog.Error("Archive list and repo info have different lengths")
+		return
+	}
+
+	for i := range repoInfos {
+		repoInfo := repoInfos[i]
+		archives := repoInfo.Archives
+		labels := prometheus.Labels{
+			"location":  repoInfo.Repository.Location,
+			"repoLabel": repoInfo.Repository.Label,
+			"archive":   "",
+		}
+
+		if len(archives) == 0 {
+			req.totalSize.With(labels).Set(float64(len(archives)))
+			continue
+		}
+
+		latestArchive := archives[len(archives)-1]
+		// date format: "2024-12-26T01:00:12.000000" -
+		// nano:         2006-01-02T15:04:05.999999999Z07:00
+		// parse ISO 8601 date time
+		latestArchiveTime, err := time.Parse("2006-01-02T15:04:05.000000", latestArchive.Start)
+		if err != nil {
+			slog.Error("Failed to parse time", slog.Any("error", err))
+			continue
+		}
+		labels["archive"] = latestArchive.Name
+		unixTimestamp := latestArchiveTime.Unix()
+		req.lastBackupTimestamp.With(labels).Set(float64(unixTimestamp))
+		req.uniqueSize.With(labels).Set(float64(latestArchive.Stats.OriginalSize))
+		req.numberOfFiles.With(labels).Set(float64(latestArchive.Stats.Nfiles))
+		req.totalSize.With(labels).Set(float64(len(archives)))
+	}
+}
+
+func runBorgmaticCmd[T ListArchives | RepoInfos](cmd string) T {
+	slog.Info("Running command", slog.String("cmd", cmd))
+	result, err := exec.Command("sh", "-c", cmd).Output()
+	if err != nil {
+		slog.Error("Command failed", slog.Any("error", err))
+	}
+	var output T
+	if err := json.Unmarshal(result, &output); err != nil {
+		slog.Error("Failed to unmarshal JSON", slog.Any("error", err))
+	}
+	return output
+}

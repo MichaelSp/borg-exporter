@@ -1,9 +1,12 @@
 name: Build and Push Docker Image
-
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -30,9 +33,11 @@ jobs:
           token: ${{ github.token }}
           branch: main
 
-      - name: Build and push Docker image
-        run: |
-          docker buildx build --push \
-            --tag ghcr.io/michaelsp/borg-exporter:${{ steps.semver.outputs.next }} \
-            --tag ghcr.io/michaelsp/borg-exporter:latest 
-            .
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ghcr.io/michaelsp/borg-exporter:${{ steps.semver.outputs.next }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -28,7 +28,9 @@ jobs:
       # This is used to complete the identity challenge
       # with sigstore/fulcio when running outside of PRs.
       id-token: write
-
+    outputs:
+      meta: ${{ steps.meta.outputs }}
+      next: ${{ steps.semver.outputs.next }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -111,7 +113,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const nextVersion = 'v${{ steps.semver.outputs.next }}';
+            const nextVersion = 'v${{ job.build.outputs.next }}';
             github.rest.git.createRef({
               owner: context.repo.owner,
               repo: context.repo.repo,

@@ -22,6 +22,9 @@ func (a *App) metrics(res http.ResponseWriter, req *http.Request) {
 func (req *MetricRequest) collectMetrics(borgmaticConfigs []string) {
 	borgmaticConfigsStr := strings.Join(borgmaticConfigs, "-c ")
 	slog.Info("get metrics", slog.String("borgmaticConfigsStr", borgmaticConfigsStr))
+	if borgmaticConfigsStr != "" {
+		borgmaticConfigsStr = "-c " + borgmaticConfigsStr
+	}
 	archiveList := runBorgmaticCmd[ListArchives]("borgmatic list " + borgmaticConfigsStr + " --json")
 	repoInfos := runBorgmaticCmd[RepoInfos]("borgmatic info " + borgmaticConfigsStr + " --json")
 
@@ -50,9 +53,6 @@ func (req *MetricRequest) collectMetrics(borgmaticConfigs []string) {
 		}
 
 		latestArchive := archives[len(archives)-1]
-		// date format: "2024-12-26T01:00:12.000000" -
-		// nano:         2006-01-02T15:04:05.999999999Z07:00
-		// parse ISO 8601 date time
 		latestArchiveTime, err := time.Parse("2006-01-02T15:04:05.000000", latestArchive.Start)
 		if err != nil {
 			slog.Error("Failed to parse time", slog.Any("error", err))

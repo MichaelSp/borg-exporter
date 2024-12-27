@@ -9,9 +9,11 @@ on:
   workflow_dispatch:
 
 jobs:
+  concurrency:
+    group: build-${{ github.ref }}
+    cancel-in-progress: true
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

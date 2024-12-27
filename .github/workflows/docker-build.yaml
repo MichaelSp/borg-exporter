@@ -16,6 +16,8 @@ jobs:
   build:
     name: Build (and Push if main)
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -39,8 +41,6 @@ jobs:
 
       - name: Build and push
         uses: docker/build-push-action@v6
-        permissions:
-          packages: write
         with:
           context: .
           push: ${{ github.ref == 'refs/heads/main' }}

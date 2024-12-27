@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   build:
+    name: Build (and Push if main)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -38,6 +39,8 @@ jobs:
 
       - name: Build and push
         uses: docker/build-push-action@v6
+        permissions:
+          packages: write
         with:
           context: .
           push: ${{ github.ref == 'refs/heads/main' }}
@@ -45,7 +48,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  update_release_draft:
+  release:
+    name: Create Release
     needs: build
     runs-on: ubuntu-latest
     permissions:

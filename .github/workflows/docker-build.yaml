@@ -62,7 +62,7 @@ jobs:
         with:
           script: |
             const nextVersion = '${{ steps.semver.outputs.next }}';
-            github.git.createRef({
+            github.rest.git.createRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
               ref: `refs/tags/${nextVersion}`,

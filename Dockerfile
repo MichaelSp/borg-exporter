@@ -11,8 +11,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy the source code
-COPY cmd/main.go /app/cmd/main.go
-COPY pkg /app/pkg
+COPY cmd/ cmd/
+COPY pkg/ pkg/
 
 # Build the Go binary
 RUN go build -o borg-exporter ./cmd/main.go
@@ -21,6 +21,8 @@ RUN go build -o borg-exporter ./cmd/main.go
 FROM alpine:latest
 
 # Copy the Go binary from the builder stage
-COPY --from=builder /borg-exporter /usr/local/bin/borg-exporter
+COPY --from=builder /app//borg-exporter /bin/borg-exporter
 COPY --from=ghcr.io/borgmatic-collective/borgmatic:1.9.4 /usr/local/bin/borgmatic /bin/borgmatic
 COPY --from=ghcr.io/borgmatic-collective/borgmatic:1.9.4 /usr/local/bin/borg /bin/borg
+
+ENTRYPOINT ["/bin/borg-exporter"]

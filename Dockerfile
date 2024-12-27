@@ -18,11 +18,9 @@ COPY pkg/ pkg/
 RUN go build -o borg-exporter ./cmd/main.go
 
 # Stage 2: Create the final image
-FROM alpine:latest
+FROM ghcr.io/borgmatic-collective/borgmatic:1.9.4
 
 # Copy the Go binary from the builder stage
-COPY --from=builder /app//borg-exporter /bin/borg-exporter
-COPY --from=ghcr.io/borgmatic-collective/borgmatic:1.9.4 /usr/local/bin/borgmatic /bin/borgmatic
-COPY --from=ghcr.io/borgmatic-collective/borgmatic:1.9.4 /usr/local/bin/borg /bin/borg
+COPY --from=builder /app/borg-exporter /usr/local/bin/borg-exporter
 
-ENTRYPOINT ["/bin/borg-exporter"]
+ENTRYPOINT ["/usr/local/bin/borg-exporter"]

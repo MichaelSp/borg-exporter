@@ -13,6 +13,8 @@ import (
 )
 
 func (a *App) metrics(res http.ResponseWriter, req *http.Request) {
+	startTime := time.Now()
+	defer slog.Info("metrics request", slog.Duration("duration", time.Since(startTime)))
 	metricRequest := newAppRequest()
 	metricRequest.collectMetrics(a.BorgmaticConfigs)
 	h := promhttp.HandlerFor(metricRequest.registry, promhttp.HandlerOpts{})

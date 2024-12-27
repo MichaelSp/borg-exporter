@@ -54,6 +54,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: main
+          noNewCommitBehavior: 'silent'
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
@@ -111,7 +112,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           script: |
-            const nextVersion = 'v${{ needs.build.outputs.next }}';
+            const nextVersion = '${{ needs.build.outputs.next }}';
             github.rest.git.createRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -119,7 +120,9 @@ jobs:
               sha: context.sha
             });
 
-      - uses: release-drafter/release-drafter@v6
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          draft: ${{ github.ref == 'refs/heads/main' }}
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build.outputs.next }}
+          draft: ${{ github.ref != 'refs/heads/main' }}
+          generate_release_notes: true

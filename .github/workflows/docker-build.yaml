@@ -29,7 +29,6 @@ jobs:
       # with sigstore/fulcio when running outside of PRs.
       id-token: write
     outputs:
-      meta: ${{ steps.meta.outputs }}
       next: ${{ steps.semver.outputs.next }}
     steps:
       - name: Checkout repository

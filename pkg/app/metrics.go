@@ -14,12 +14,19 @@ import (
 )
 
 func (a *App) metrics(res http.ResponseWriter, req *http.Request) {
+	if a.MetricsMutex.TryLock() {
+		defer a.MetricsMutex.Unlock()
+	} else {
+		slog.Info("metrics request", slog.String("status", "failed"))
+		http.Error(res, "metrics request already running", http.StatusServiceUnavailable)
+		return
+	}
 	startTime := time.Now()
-	defer slog.Info("metrics request", slog.Duration("duration", time.Since(startTime)))
 	metricRequest := newAppRequest()
 	metricRequest.collectMetrics(a.BorgmaticConfigs)
 	h := promhttp.HandlerFor(metricRequest.registry, promhttp.HandlerOpts{})
 	h.ServeHTTP(res, req)
+	slog.Info("metrics request", slog.Duration("duration", time.Since(startTime)))
 }
 
 func (req *MetricRequest) collectMetrics(borgmaticConfigs []string) {

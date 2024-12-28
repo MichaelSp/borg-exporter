@@ -1,8 +1,11 @@
 package app
 
+import "sync"
+
 type App struct {
 	BorgmaticConfigs []string
 	Port             string
+	MetricsMutex     sync.Mutex
 }
 
 type RepoInfo struct {

@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/michaelsp/borg-exporter/pkg/app"
 )
@@ -20,6 +21,7 @@ func main() {
 	a := app.App{
 		BorgmaticConfigs: strings.Split(borgmaticConfigs, ","),
 		Port:             port,
+		MetricsMutex:     sync.Mutex{},
 	}
 	err = a.Run()
 	if err != nil {

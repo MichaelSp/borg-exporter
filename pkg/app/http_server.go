@@ -16,5 +16,6 @@ func (a *App) Run() error {
 		slog.Error("Failed to start server: %v", err)
 		return err
 	}
+
 	return nil
 }

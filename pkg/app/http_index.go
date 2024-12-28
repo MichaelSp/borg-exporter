@@ -19,6 +19,7 @@ func (a *App) index(res http.ResponseWriter, _ *http.Request) {
   <body>
     <h1>Borg Exporter</h1>
     <p><a href="/metrics">Metrics</a></p>
+	<p><a href="https://grafana.com/grafana/dashboards/14489">Grafana Dashboard</a></p>
   </body>
 </html>
 `))

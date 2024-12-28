@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 
@@ -60,6 +61,9 @@ func (req *MetricRequest) collectMetrics(borgmaticConfigs []string) {
 			slog.Error("Failed to parse time", slog.Any("error", err))
 			continue
 		}
+		archiveName := latestArchive.Name
+		// remove trailing unix timestamp from archive name.
+		archiveName = regexp.MustCompile(`-\d{10}$`).ReplaceAllString(archiveName, "")
 		labels["archive"] = latestArchive.Name
 		unixTimestamp := latestArchiveTime.Unix()
 		req.lastBackupTimestamp.With(labels).Set(float64(unixTimestamp))

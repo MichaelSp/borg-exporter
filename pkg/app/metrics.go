@@ -35,16 +35,10 @@ func (req *MetricRequest) collectMetrics(borgmaticConfigs []string) {
 	if borgmaticConfigsStr != "" {
 		borgmaticConfigsStr = "-c " + borgmaticConfigsStr
 	}
-	archiveList := runBorgmaticCmd[ListArchives]("borgmatic list " + borgmaticConfigsStr + " --json")
 	repoInfos := runBorgmaticCmd[RepoInfos]("borgmatic info " + borgmaticConfigsStr + " --json")
 
-	if archiveList == nil || repoInfos == nil {
+	if repoInfos == nil {
 		slog.Error("Failed to get archive list or repo info")
-		return
-	}
-
-	if len(archiveList) != len(repoInfos) {
-		slog.Error("Archive list and repo info have different lengths")
 		return
 	}
 

@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os/exec"
@@ -35,10 +36,10 @@ func (req *MetricRequest) collectMetrics(borgmaticConfigs []string) {
 	if borgmaticConfigsStr != "" {
 		borgmaticConfigsStr = "-c " + borgmaticConfigsStr
 	}
-	repoInfos := runBorgmaticCmd[RepoInfos]("borgmatic info " + borgmaticConfigsStr + " --json")
-
-	if repoInfos == nil {
-		slog.Error("Failed to get archive list or repo info")
+	repoInfos, err := runBorgmaticCmd[RepoInfos]("borgmatic info " + borgmaticConfigsStr + " --json")
+	if err != nil {
+		req.errorFetchingRepositoryInfo.With(prometheus.Labels{"error": err.Error()}).Inc()
+		slog.Error("Failed to get repo info", slog.Any("error", err))
 		return
 	}
 
@@ -74,15 +75,15 @@ func (req *MetricRequest) collectMetrics(borgmaticConfigs []string) {
 	}
 }
 
-func runBorgmaticCmd[T ListArchives | RepoInfos](cmd string) T {
+func runBorgmaticCmd[T ListArchives | RepoInfos](cmd string) (T, error) {
 	slog.Info("Running command", slog.String("cmd", cmd))
 	result, err := exec.Command("sh", "-c", cmd).Output()
 	if err != nil {
-		slog.Error("Command failed", slog.Any("error", err))
+		return nil, fmt.Errorf("failed to run command '%s': %w", cmd, err)
 	}
 	var output T
 	if err := json.Unmarshal(result, &output); err != nil {
-		slog.Error("Failed to unmarshal JSON", slog.Any("error", err))
+		return nil, fmt.Errorf("failed to unmarshal json: %w", err)
 	}
-	return output
+	return output, nil
 }

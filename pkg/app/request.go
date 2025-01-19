@@ -5,11 +5,12 @@ import (
 )
 
 type MetricRequest struct {
-	registry            *prometheus.Registry
-	totalSize           *prometheus.GaugeVec
-	lastBackupTimestamp *prometheus.GaugeVec
-	uniqueSize          *prometheus.GaugeVec
-	numberOfFiles       *prometheus.GaugeVec
+	registry                    *prometheus.Registry
+	totalSize                   *prometheus.GaugeVec
+	lastBackupTimestamp         *prometheus.GaugeVec
+	uniqueSize                  *prometheus.GaugeVec
+	numberOfFiles               *prometheus.GaugeVec
+	errorFetchingRepositoryInfo *prometheus.GaugeVec
 }
 
 func newAppRequest() MetricRequest {
@@ -44,10 +45,18 @@ func newAppRequest() MetricRequest {
 			},
 			labels,
 		),
+		errorFetchingRepositoryInfo: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "borg_error_fetching_repository_info",
+				Help: "Error fetching repository info",
+			},
+			labels,
+		),
 	}
 	req.registry.MustRegister(req.totalSize)
 	req.registry.MustRegister(req.lastBackupTimestamp)
 	req.registry.MustRegister(req.uniqueSize)
 	req.registry.MustRegister(req.numberOfFiles)
+	req.registry.MustRegister(req.errorFetchingRepositoryInfo)
 	return req
 }

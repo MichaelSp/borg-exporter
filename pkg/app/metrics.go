@@ -60,6 +60,7 @@ func (req *MetricRequest) collectMetrics(borgmaticConfigs []string) {
 		latestArchive := archives[len(archives)-1]
 		latestArchiveTime, err := time.Parse("2006-01-02T15:04:05.000000", latestArchive.Start)
 		if err != nil {
+			req.errorFetchingRepositoryInfo.With(prometheus.Labels{"error": err.Error()}).Inc()
 			slog.Error("Failed to parse time", slog.Any("error", err))
 			continue
 		}
@@ -72,6 +73,9 @@ func (req *MetricRequest) collectMetrics(borgmaticConfigs []string) {
 		req.uniqueSize.With(labels).Set(float64(latestArchive.Stats.OriginalSize))
 		req.numberOfFiles.With(labels).Set(float64(latestArchive.Stats.Nfiles))
 		req.totalSize.With(labels).Set(float64(len(archives)))
+		req.compressedSize.With(labels).Set(float64(latestArchive.Stats.CompressedSize))
+		req.deduplicatedSize.With(labels).Set(float64(latestArchive.Stats.DeduplicatedSize))
+		req.cacheSize.With(labels).Set(float64(repoInfo.Cache.Stats.TotalSize))
 	}
 }
 

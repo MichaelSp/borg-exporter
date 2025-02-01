@@ -6,12 +6,16 @@ in k8s.
 
 It provides the following metrics:
 
-| Name                       | Description                                       | Type  |
-|----------------------------|---------------------------------------------------|-------|
-| borg_backups_total         | Total number of Borg backups                      | Gauge |
-| borg_last_backup_timestamp | Timestamp of the last backup                      | Gauge |
-| borg_unique_size           | Uncompressed unique size of the Borg Repo (bytes) | Gauge |
-| borg_number_of_files       | Number of files in the Borg Repo                  | Gauge |
+| Name                                | Description                                       | Type  |
+| ----------------------------------- | ------------------------------------------------- | ----- |
+| borg_backups_total                  | Total number of Borg backups                      | Gauge |
+| borg_last_backup_timestamp          | Timestamp of the last backup                      | Gauge |
+| borg_unique_size                    | Uncompressed unique size of the Borg Repo (bytes) | Gauge |
+| borg_number_of_files                | Number of files in the Borg Repo                  | Gauge |
+| borg_error_fetching_repository_info | Error fetching repository info                    | Gauge |
+| borg_deduplicated_size              | Deduplicated size of the Borg Repo (bytes)        | Gauge |
+| borg_compressed_size                | Compressed size of the Borg Repo (bytes)          | Gauge |
+| borg_cache_size                     | Size of the Borg cache (bytes)                    | Gauge |
 
 ## Configuration
 
@@ -36,7 +40,7 @@ spec:
           image: ghcr.io/borgmatic-collective/borgmatic:1.9.4
           env:
             - name: BORGMATIC_CONFIG
-              value: '/etc/borgmatic.d'
+              value: "/etc/borgmatic.d"
             - name: BORG_REPO
               value: "ssh://backup:2234/dst"
             - name: BORG_PASSCOMMAND
@@ -69,7 +73,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: BORGMATIC_CONFIG
-              value: '/etc/borgmatic.d'
+              value: "/etc/borgmatic.d"
             - name: BORG_REPO
               value: "ssh://backup:2234/dst"
             - name: BORG_PASSCOMMAND
@@ -95,7 +99,7 @@ spec:
             - containerPort: 9996
       volumes:
         - name: init
-          emptyDir: { }
+          emptyDir: {}
         - name: borgmatic-config
           configMap:
             name: borgmatic-config

@@ -11,6 +11,9 @@ type MetricRequest struct {
 	uniqueSize                  *prometheus.GaugeVec
 	numberOfFiles               *prometheus.GaugeVec
 	errorFetchingRepositoryInfo *prometheus.GaugeVec
+	deduplicatedSize            *prometheus.GaugeVec
+	compressedSize              *prometheus.GaugeVec
+	cacheSize                   *prometheus.GaugeVec
 }
 
 func newAppRequest() MetricRequest {
@@ -51,6 +54,27 @@ func newAppRequest() MetricRequest {
 				Help: "Error fetching repository info",
 			},
 			[]string{"error"},
+		),
+		deduplicatedSize: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "borg_deduplicated_size",
+				Help: "Deduplicated size of the Borg Repo (bytes)",
+			},
+			labels,
+		),
+		compressedSize: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "borg_compressed_size",
+				Help: "Compressed size of the Borg Repo (bytes)",
+			},
+			labels,
+		),
+		cacheSize: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "borg_cache_size",
+				Help: "Size of the Borg cache (bytes)",
+			},
+			labels,
 		),
 	}
 	req.registry.MustRegister(req.totalSize)

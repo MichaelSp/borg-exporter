@@ -50,7 +50,7 @@ func newAppRequest() MetricRequest {
 				Name: "borg_error_fetching_repository_info",
 				Help: "Error fetching repository info",
 			},
-			labels,
+			[]string{"error"},
 		),
 	}
 	req.registry.MustRegister(req.totalSize)

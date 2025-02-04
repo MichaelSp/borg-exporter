@@ -19,7 +19,7 @@ ENV GOCACHE=/root/.cache/go-build
 RUN --mount=type=cache,target="/root/.cache/go-build" go build -o borg-exporter ./cmd/main.go
 
 # Stage 2: Create the final image
-FROM ghcr.io/borgmatic-collective/borgmatic:1.9.7
+FROM ghcr.io/borgmatic-collective/borgmatic:1.9.9
 
 # Copy the Go binary from the builder stage
 COPY --from=builder /app/borg-exporter /usr/local/bin/borg-exporter

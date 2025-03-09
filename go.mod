@@ -2,7 +2,7 @@ module github.com/michaelsp/borg-exporter
 
 go 1.23.4
 
-require github.com/prometheus/client_golang v1.21.0
+require github.com/prometheus/client_golang v1.21.1
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

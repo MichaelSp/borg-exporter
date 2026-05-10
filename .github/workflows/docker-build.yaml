@@ -103,6 +103,7 @@ jobs:
   release:
     name: Create or Draft Release
     needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build.outputs.next != ''
     runs-on: ubuntu-latest
     permissions:
       # write permission is required to create a github release

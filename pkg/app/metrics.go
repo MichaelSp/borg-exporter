@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -22,25 +23,34 @@ func (a *App) metrics(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "metrics request already running", http.StatusServiceUnavailable)
 		return
 	}
+	ctx, cancel := context.WithTimeout(req.Context(), 5*time.Second)
+	defer cancel()
+
 	startTime := time.Now()
 	metricRequest := newAppRequest()
-	metricRequest.collectMetrics(a.BorgmaticConfigs)
+	if err := a.RepoLock.With(ctx, func(ctx context.Context) error {
+		return metricRequest.collectMetrics(ctx, a.BorgmaticConfigs)
+	}); err != nil {
+		slog.Info("metrics request", slog.String("status", "repository busy"), slog.Any("error", err))
+		http.Error(res, "Borg repository is busy", http.StatusServiceUnavailable)
+		return
+	}
 	h := promhttp.HandlerFor(metricRequest.registry, promhttp.HandlerOpts{})
 	h.ServeHTTP(res, req)
 	slog.Info("metrics request", slog.Duration("duration", time.Since(startTime)))
 }
 
-func (req *MetricRequest) collectMetrics(borgmaticConfigs []string) {
+func (req *MetricRequest) collectMetrics(ctx context.Context, borgmaticConfigs []string) error {
 	borgmaticConfigsStr := strings.Join(borgmaticConfigs, "-c ")
 	slog.Info("get metrics", slog.String("borgmaticConfigsStr", borgmaticConfigsStr))
 	if borgmaticConfigsStr != "" {
 		borgmaticConfigsStr = "-c " + borgmaticConfigsStr
 	}
-	repoInfos, err := runBorgmaticCmd[RepoInfos]("borgmatic info " + borgmaticConfigsStr + " --json")
+	repoInfos, err := runBorgmaticCmd[RepoInfos](ctx, "borgmatic info "+borgmaticConfigsStr+" --json")
 	if err != nil {
 		req.errorFetchingRepositoryInfo.With(prometheus.Labels{"error": err.Error()}).Inc()
 		slog.Error("Failed to get repo info", slog.Any("error", err))
-		return
+		return nil
 	}
 
 	for i := range repoInfos {
@@ -77,11 +87,13 @@ func (req *MetricRequest) collectMetrics(borgmaticConfigs []string) {
 		req.deduplicatedSize.With(labels).Set(float64(latestArchive.Stats.DeduplicatedSize))
 		req.cacheSize.With(labels).Set(float64(repoInfo.Cache.Stats.TotalSize))
 	}
+
+	return nil
 }
 
-func runBorgmaticCmd[T ListArchives | RepoInfos](cmd string) (T, error) {
+func runBorgmaticCmd[T ListArchives | RepoInfos](ctx context.Context, cmd string) (T, error) {
 	slog.Info("Running command", slog.String("cmd", cmd))
-	result, err := exec.Command("sh", "-c", cmd).Output()
+	result, err := exec.CommandContext(ctx, "sh", "-c", cmd).Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to run command '%s': %w", cmd, err)
 	}

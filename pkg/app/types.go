@@ -6,6 +6,7 @@ type App struct {
 	BorgmaticConfigs []string
 	Port             string
 	MetricsMutex     sync.Mutex
+	RepoLock         *RepoLock
 }
 
 type RepoInfo struct {

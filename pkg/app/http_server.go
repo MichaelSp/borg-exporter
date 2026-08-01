@@ -13,7 +13,7 @@ func (a *App) Run() error {
 	slog.Info("Started borg-exporter", slog.String("PORT", a.Port))
 	err := http.ListenAndServe(fmt.Sprintf(":%s", a.Port), nil)
 	if err != nil {
-		slog.Error("Failed to start server: %v", err)
+		slog.Error("failed to start server", slog.Any("error", err))
 		return err
 	}
 

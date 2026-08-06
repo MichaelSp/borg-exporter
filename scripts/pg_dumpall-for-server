@@ -1,0 +1,42 @@
+#!/bin/sh
+
+set -eu
+
+host=
+port=
+username=
+next=
+
+
+for arg in "$@"; do
+	if [ -n "$next" ]; then
+		case "$next" in
+			host) host="$arg" ;;
+			port) port="$arg" ;;
+			username) username="$arg" ;;
+		esac
+		next=
+		continue
+	fi
+
+	case "$arg" in
+		--host) next=host ;;
+		--host=*) host="${arg#--host=}" ;;
+		--port) next=port ;;
+		--port=*) port="${arg#--port=}" ;;
+		--username) next=username ;;
+		--username=*) username="${arg#--username=}" ;;
+	esac
+done
+
+version_num=$(
+	/usr/libexec/postgresql17/psql --no-password --tuples-only --no-align --dbname=postgres \
+		${host:+--host="$host"} ${port:+--port="$port"} ${username:+--username="$username"} \
+		--command='SHOW server_version_num'
+)
+major=${version_num%????}
+
+case "$major" in
+	16|17|18) exec "/usr/libexec/postgresql${major}/pg_dumpall" "$@" ;;
+	*) echo "unsupported PostgreSQL server version: ${version_num}" >&2; exit 1 ;;
+esac

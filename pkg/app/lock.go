@@ -76,33 +76,39 @@ func (l *RepoLock) With(ctx context.Context, operation func(context.Context) err
 	leaderCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	result := make(chan error, 1)
+	electionDone := make(chan struct{})
 	var completed atomic.Bool
 
-	go leaderelection.RunOrDie(leaderCtx, leaderelection.LeaderElectionConfig{
-		Lock:            lock,
-		LeaseDuration:   60 * time.Second,
-		RenewDeadline:   40 * time.Second,
-		RetryPeriod:     10 * time.Second,
-		ReleaseOnCancel: true,
-		Callbacks: leaderelection.LeaderCallbacks{
-			OnStartedLeading: func(leaderCtx context.Context) {
-				err := operation(leaderCtx)
-				completed.Store(true)
-				result <- err
-				cancel()
+	go func() {
+		defer close(electionDone)
+		leaderelection.RunOrDie(leaderCtx, leaderelection.LeaderElectionConfig{
+			Lock:            lock,
+			LeaseDuration:   60 * time.Second,
+			RenewDeadline:   40 * time.Second,
+			RetryPeriod:     10 * time.Second,
+			ReleaseOnCancel: true,
+			Callbacks: leaderelection.LeaderCallbacks{
+				OnStartedLeading: func(leaderCtx context.Context) {
+					err := operation(leaderCtx)
+					completed.Store(true)
+					result <- err
+					cancel()
+				},
+				OnStoppedLeading: func() {
+					if !completed.Load() {
+						result <- fmt.Errorf("lost repository Lease before operation completed")
+					}
+				},
 			},
-			OnStoppedLeading: func() {
-				if !completed.Load() {
-					result <- fmt.Errorf("lost repository Lease before operation completed")
-				}
-			},
-		},
-	})
+		})
+	}()
 
 	select {
 	case err := <-result:
+		<-electionDone
 		return err
 	case <-ctx.Done():
+		<-electionDone
 		return ctx.Err()
 	}
 }

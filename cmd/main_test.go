@@ -11,3 +11,10 @@ func TestLockRunRequiresCommand(t *testing.T) {
 		t.Fatalf("lockRun(nil) error = %v, want usage error", err)
 	}
 }
+
+func TestNewAppInitializesRepoLock(t *testing.T) {
+	app := newApp("/etc/borgmatic.d", "9996")
+	if app.RepoLock == nil {
+		t.Fatal("RepoLock must be initialized")
+	}
+}

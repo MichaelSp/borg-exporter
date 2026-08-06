@@ -29,14 +29,19 @@ func main() {
 		port = "9996"
 	}
 
-	a := app.App{
-		BorgmaticConfigs: strings.Split(borgmaticConfigs, ","),
-		Port:             port,
-		MetricsMutex:     sync.Mutex{},
-	}
+	a := newApp(borgmaticConfigs, port)
 	err = a.Run()
 	if err != nil {
 		slog.Error("failed to run app", slog.Any("error", err))
+	}
+}
+
+func newApp(borgmaticConfigs, port string) app.App {
+	return app.App{
+		BorgmaticConfigs: strings.Split(borgmaticConfigs, ","),
+		Port:             port,
+		MetricsMutex:     sync.Mutex{},
+		RepoLock:         app.NewRepoLockFromEnv(),
 	}
 }
 

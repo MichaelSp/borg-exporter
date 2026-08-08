@@ -13,7 +13,7 @@ func TestLockRunRequiresCommand(t *testing.T) {
 }
 
 func TestNewAppInitializesRepoLock(t *testing.T) {
-	app := newApp("/etc/borgmatic.d", "9996")
+	app := newApp("/etc/borgmatic.d", "9996", nil)
 	if app.RepoLock == nil {
 		t.Fatal("RepoLock must be initialized")
 	}

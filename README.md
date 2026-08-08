@@ -17,6 +17,19 @@ It provides the following metrics:
 | borg_compressed_size                | Compressed size of the Borg Repo (bytes)          | Gauge |
 | borg_cache_size                     | Size of the Borg cache (bytes)                    | Gauge |
 
+## Cached metrics during backups
+
+Set `BORG_METRICS_CACHE_CONFIGMAP` to the name of a ConfigMap in the exporter's
+namespace to preserve the last successful metrics response. Each successful
+repository read updates the ConfigMap. When Borg repository access is busy, the
+exporter returns that snapshot with HTTP 200 instead of failing the scrape.
+
+The cache contains only Prometheus metric text and a timestamp. It does not
+contain Borg credentials, Borg cache data, or repository state. Grant the
+exporter `get`, `create`, `update`, and `patch` permissions on ConfigMaps in its
+namespace. Alert on `borg_exporter_snapshot_age_seconds` so an old snapshot is
+visible without making normal backups appear as scrape failures.
+
 ## Configuration
 
 ```yaml

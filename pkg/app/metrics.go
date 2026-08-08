@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -30,15 +31,69 @@ func (a *App) metrics(res http.ResponseWriter, req *http.Request) {
 	metricRequest := newAppRequest()
 	if err := a.RepoLock.With(ctx, func(ctx context.Context) error {
 		return metricRequest.collectMetrics(ctx, a.BorgmaticConfigs)
-	}); err != nil {
-		slog.Info("metrics request", slog.String("status", "repository busy"), slog.Any("error", err))
-		http.Error(res, "Borg repository is busy", http.StatusServiceUnavailable)
+	}); err == nil {
+		snapshot := MetricsSnapshot{Metrics: renderMetrics(metricRequest.registry), SavedAt: time.Now()}
+		a.saveSnapshot(snapshot)
+		writeSnapshot(res, snapshot)
+		slog.Info("metrics request", slog.Duration("duration", time.Since(startTime)))
+		return
+	} else {
+		slog.Info("metrics refresh failed", slog.Any("error", err))
+		if snapshot, found := a.loadSnapshot(req.Context()); found {
+			writeSnapshot(res, snapshot)
+			return
+		}
+		http.Error(res, "Borg repository is busy and no cached metrics are available", http.StatusServiceUnavailable)
+	}
+}
+
+func (a *App) saveSnapshot(snapshot MetricsSnapshot) {
+	if a.MetricsCache == nil {
 		return
 	}
-	h := promhttp.HandlerFor(metricRequest.registry, promhttp.HandlerOpts{})
-	h.ServeHTTP(res, req)
-	slog.Info("metrics request", slog.Duration("duration", time.Since(startTime)))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := a.MetricsCache.Save(ctx, snapshot); err != nil {
+		slog.Warn("failed to save metrics cache", slog.Any("error", err))
+	}
 }
+
+func (a *App) loadSnapshot(ctx context.Context) (MetricsSnapshot, bool) {
+	if a.MetricsCache == nil {
+		return MetricsSnapshot{}, false
+	}
+	snapshot, found, err := a.MetricsCache.Load(ctx)
+	if err != nil {
+		slog.Warn("failed to load metrics cache", slog.Any("error", err))
+		return MetricsSnapshot{}, false
+	}
+	return snapshot, found
+}
+
+func renderMetrics(registry *prometheus.Registry) string {
+	response := &metricsResponse{header: make(http.Header)}
+	promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(response, nil)
+	return response.body.String()
+}
+
+func writeSnapshot(res http.ResponseWriter, snapshot MetricsSnapshot) {
+	res.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+	_, _ = res.Write([]byte(snapshot.Metrics))
+	age := time.Since(snapshot.SavedAt).Seconds()
+	if age < 0 {
+		age = 0
+	}
+	_, _ = fmt.Fprintf(res, "# HELP borg_exporter_snapshot_last_success_timestamp_seconds Unix timestamp of the last successful repository metrics refresh.\n# TYPE borg_exporter_snapshot_last_success_timestamp_seconds gauge\nborg_exporter_snapshot_last_success_timestamp_seconds %.3f\n# HELP borg_exporter_snapshot_age_seconds Age of the last successful repository metrics snapshot.\n# TYPE borg_exporter_snapshot_age_seconds gauge\nborg_exporter_snapshot_age_seconds %.3f\n", float64(snapshot.SavedAt.UnixNano())/float64(time.Second), age)
+}
+
+type metricsResponse struct {
+	header http.Header
+	body   bytes.Buffer
+}
+
+func (r *metricsResponse) Header() http.Header         { return r.header }
+func (r *metricsResponse) WriteHeader(statusCode int)  {}
+func (r *metricsResponse) Write(b []byte) (int, error) { return r.body.Write(b) }
 
 func (req *MetricRequest) collectMetrics(ctx context.Context, borgmaticConfigs []string) error {
 	borgmaticConfigsStr := strings.Join(borgmaticConfigs, "-c ")
@@ -50,7 +105,7 @@ func (req *MetricRequest) collectMetrics(ctx context.Context, borgmaticConfigs [
 	if err != nil {
 		req.errorFetchingRepositoryInfo.With(prometheus.Labels{"error": err.Error()}).Inc()
 		slog.Error("Failed to get repo info", slog.Any("error", err))
-		return nil
+		return err
 	}
 
 	for i := range repoInfos {

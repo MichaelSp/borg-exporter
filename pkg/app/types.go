@@ -7,6 +7,7 @@ type App struct {
 	Port             string
 	MetricsMutex     sync.Mutex
 	RepoLock         *RepoLock
+	MetricsCache     MetricsCache
 }
 
 type RepoInfo struct {

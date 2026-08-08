@@ -29,19 +29,25 @@ func main() {
 		port = "9996"
 	}
 
-	a := newApp(borgmaticConfigs, port)
+	metricsCache, err := app.NewConfigMapMetricsCacheFromEnv()
+	if err != nil {
+		slog.Error("failed to configure metrics cache", slog.Any("error", err))
+		return
+	}
+	a := newApp(borgmaticConfigs, port, metricsCache)
 	err = a.Run()
 	if err != nil {
 		slog.Error("failed to run app", slog.Any("error", err))
 	}
 }
 
-func newApp(borgmaticConfigs, port string) app.App {
+func newApp(borgmaticConfigs, port string, metricsCache app.MetricsCache) app.App {
 	return app.App{
 		BorgmaticConfigs: strings.Split(borgmaticConfigs, ","),
 		Port:             port,
 		MetricsMutex:     sync.Mutex{},
 		RepoLock:         app.NewRepoLockFromEnv(),
+		MetricsCache:     metricsCache,
 	}
 }
 

@@ -19,7 +19,7 @@ ENV GOCACHE=/root/.cache/go-build
 RUN --mount=type=cache,target="/root/.cache/go-build" go build -o borg-exporter ./cmd/main.go
 
 # Stage 2: Create the final image
-FROM ghcr.io/borgmatic-collective/borgmatic:2.1.6
+FROM ghcr.io/borgmatic-collective/borgmatic:2.1.7
 
 # Borgmatic's Alpine 3.22 base only carries PostgreSQL 16 and 17 clients.
 # Use 3.23 packages so backup can match PostgreSQL server majors 16 through 18.

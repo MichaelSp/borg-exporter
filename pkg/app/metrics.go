@@ -16,6 +16,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+const metricsCollectionTimeout = 14 * time.Minute
+
 func (a *App) metrics(res http.ResponseWriter, req *http.Request) {
 	if a.MetricsMutex.TryLock() {
 		defer a.MetricsMutex.Unlock()
@@ -24,7 +26,9 @@ func (a *App) metrics(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "metrics request already running", http.StatusServiceUnavailable)
 		return
 	}
-	ctx, cancel := context.WithTimeout(req.Context(), 5*time.Second)
+	// Borgmatic may inspect several repositories serially. Keep this below the
+	// Prometheus scrape timeout while allowing normal repository latency.
+	ctx, cancel := context.WithTimeout(req.Context(), metricsCollectionTimeout)
 	defer cancel()
 
 	startTime := time.Now()

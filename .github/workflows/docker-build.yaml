@@ -50,12 +50,13 @@ jobs:
 
       - name: Get Next Version
         id: semver
-        uses: ietf-tools/semver-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: main
-          noNewCommitBehavior: 'silent'
-          patchList: fix, bugfix, perf, refactor, test, tests, chore
+        shell: bash
+        run: |
+          git fetch --tags --force
+          latest="$(git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1)"
+          version="${latest#v}"
+          IFS=. read -r major minor patch <<< "$version"
+          echo "next=v${major}.${minor}.$((patch + 1))" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0

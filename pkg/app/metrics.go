@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -76,7 +77,8 @@ func (a *App) loadSnapshot(ctx context.Context) (MetricsSnapshot, bool) {
 
 func renderMetrics(registry *prometheus.Registry) string {
 	response := &metricsResponse{header: make(http.Header)}
-	promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(response, nil)
+	request := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(response, request)
 	return response.body.String()
 }
 

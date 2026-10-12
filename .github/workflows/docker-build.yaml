@@ -32,7 +32,7 @@ jobs:
       next: ${{ steps.semver.outputs.next }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
@@ -75,7 +75,7 @@ jobs:
           tags: "type=semver,pattern={{version}},value=${{ steps.semver.outputs.next }}"
 
       - name: Build (and push if main)
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         id: build-and-push
         with:
           context: .
@@ -111,7 +111,7 @@ jobs:
       contents: write
     steps:
       - name: Create Release Tag
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         if: github.ref == 'refs/heads/main'
         with:
           script: |
@@ -124,7 +124,7 @@ jobs:
             });
 
       - name: Create Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           tag_name: ${{ needs.build.outputs.next }}
           draft: ${{ github.ref != 'refs/heads/main' }}

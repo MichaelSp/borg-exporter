@@ -37,6 +37,9 @@ version_num=$(
 major=${version_num%????}
 
 case "$major" in
+	# Use the oldest installed client for 15. PostgreSQL 16's dump tools
+	# support older servers and include their own matching pg_dump.
+	15) exec /usr/libexec/postgresql16/pg_dumpall "$@" ;;
 	16|17|18) exec "/usr/libexec/postgresql${major}/pg_dumpall" "$@" ;;
 	*) echo "unsupported PostgreSQL server version: ${version_num}" >&2; exit 1 ;;
 esac

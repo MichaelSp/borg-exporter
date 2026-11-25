@@ -22,7 +22,7 @@ RUN --mount=type=cache,target="/root/.cache/go-build" go build -o borg-exporter 
 FROM ghcr.io/borgmatic-collective/borgmatic:2.1.7
 
 # Borgmatic's Alpine 3.22 base only carries PostgreSQL 16 and 17 clients.
-# Use 3.23 packages so backup can match PostgreSQL server majors 16 through 18.
+# Use 3.23 packages to match server majors 16 through 18; servers on 15 use 16.
 RUN sed -i 's/v3\.22/v3.23/g' /etc/apk/repositories \
     && apk upgrade --no-cache \
     && apk add --no-cache postgresql16-client postgresql17-client postgresql18-client
